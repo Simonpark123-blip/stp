@@ -1,3 +1,9 @@
+package project.alg.stp;
+
+import project.alg.stp.entity.Connection;
+import project.alg.stp.entity.Port;
+import project.alg.stp.entity.Switch;
+
 import java.util.*;
 
 public class Main {
@@ -21,6 +27,10 @@ public class Main {
         printConnections();
 
         findPathCosts(rootBridge);
+
+        printSwitches();
+
+        markDesignatedPorts(rootBridge);
 
         printSwitches();
     }
@@ -76,7 +86,7 @@ public class Main {
         // iteriere durch alle Verbindungen des aktuellen nicht root-Switches
         // error-case: Selbstreferenz
         if(connection.getConnectedPorts().getFirst().contains(currentSwitch.getName()) && connection.getConnectedPorts().getLast().contains(currentSwitch.getName())){
-            throw new RuntimeException("Connection with connected ports " + connection.getConnectedPorts().getFirst() + " and " + connection.getConnectedPorts().getLast() + " exists");
+            throw new RuntimeException("project.alg.stp.entity.Connection with connected ports " + connection.getConnectedPorts().getFirst() + " and " + connection.getConnectedPorts().getLast() + " exists");
         }
         // Verbindung zu Root erreicht
         if(connection.getConnectedPorts().getFirst().contains(rootBridge.getName()) || connection.getConnectedPorts().getLast().contains(rootBridge.getName())){
@@ -101,12 +111,12 @@ public class Main {
     }
 
     private static List<Switch> initializeSwitches() {
-//        Switch switchA = new Switch(40960, 'A', Helper.randomMACAddress());
-//        Switch switchB = new Switch(32768, 'B', Helper.randomMACAddress());
-//        Switch switchC = new Switch(36864, 'C', Helper.randomMACAddress());
-//        Switch switchD = new Switch(32768, 'D', Helper.randomMACAddress());
-//        Switch switchE = new Switch(40960, 'E', Helper.randomMACAddress());
-//        Switch switchF = new Switch(32768, 'F', Helper.randomMACAddress());
+//        Switch switchA = new Switch(40960, 'A', randomMACAddress());
+//        Switch switchB = new Switch(32768, 'B', randomMACAddress());
+//        Switch switchC = new Switch(36864, 'C', randomMACAddress());
+//        Switch switchD = new Switch(32768, 'D', randomMACAddress());
+//        Switch switchE = new Switch(40960, 'E', randomMACAddress());
+//        Switch switchF = new Switch(32768, 'F', randomMACAddress());
         Switch switchA = new Switch(40960, 'A', "00:01:13:D7:3E:5C");
         Switch switchB = new Switch(32768, 'B', "00:00:11:A3:3E:58");
         Switch switchC = new Switch(36864, 'C', "00:00:13:FF:3E:55");
@@ -148,7 +158,7 @@ public class Main {
 
             Connection connection = new Connection(cost, List.of(inputList.getFirst(), inputList.get(1)));
             connectionList.add(connection);
-            System.out.println("Connection " + inputList.getFirst() + " - " + inputList.get(1) + " successfully registered");
+            System.out.println("project.alg.stp.entity.Connection " + inputList.getFirst() + " - " + inputList.get(1) + " successfully registered");
 
             System.out.print("Register another connection? [yes/no]: ");
             String nextConnection = scanner.nextLine();
@@ -178,4 +188,43 @@ public class Main {
         }
         System.out.println();
     }
+
+    private static List<Connection> findNotRootConnections(Switch rootBridge){
+        return connectionList.stream().filter(connection -> !connection.getConnectedPorts().getFirst().contains(rootBridge.getName()) && !connection.getConnectedPorts().getLast().contains(rootBridge.getName())).toList();
+    }
+
+    private static void markDesignatedPorts(Switch rootBridge){
+        List<Connection> notRootConnections = findNotRootConnections(rootBridge);
+
+        for(Connection connection : notRootConnections){
+            List<Switch> currentSwitches = switchList.stream().filter(switchEntity -> connection.getConnectedPorts().toString().contains(switchEntity.getName())).toList();
+
+            System.out.println("Evaluating designated port for connection " + connection.getConnectedPorts().toString());
+            Map<Switch, Integer> switchCosts = new HashMap<>();
+            for(Switch currentSwitch : currentSwitches){
+                Map.Entry<Connection, Integer> connectingPortCost = handleConnections(0, rootBridge, currentSwitch, null);
+                Integer cost = connectingPortCost != null ? connectingPortCost.getValue() : null;
+                System.out.println("Cost for connecting port of connection " + connection.getConnectedPorts().toString() + " with currentSwitch " + currentSwitch.getName() + " is " + cost);
+                switchCosts.put(currentSwitch, cost);
+            }
+
+            Map.Entry<Switch, Integer> lowestCostSwitch = switchCosts.entrySet().stream().filter(el -> el.getValue() != null).min(Map.Entry.comparingByValue()).orElse(null);
+            System.out.println("Switch with lowest cost is " + lowestCostSwitch.getKey().getName());
+
+            List<Port> originalPorts = lowestCostSwitch.getKey().getPorts();
+            List<Port> designatedPortList = originalPorts.stream().filter(port -> connection.getConnectedPorts().contains(port.getPortName())).toList();
+            if(designatedPortList.size() != 1){
+                throw new IllegalStateException("Found an illegal amount of ports");
+            }
+            Port designatedPort = designatedPortList.getFirst();
+            originalPorts.remove(designatedPort);
+            designatedPort.setIsDesignated(true);
+            originalPorts.add(designatedPort);
+            switchList.remove(lowestCostSwitch.getKey());
+            Switch lowestCostSwitchEntity = lowestCostSwitch.getKey();
+            lowestCostSwitchEntity.setPorts(originalPorts);
+            switchList.add(lowestCostSwitchEntity);
+        }
+    }
+
 }

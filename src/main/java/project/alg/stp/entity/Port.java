@@ -1,3 +1,5 @@
+package project.alg.stp.entity;
+
 public class Port {
 
     private String portName;

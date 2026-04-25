@@ -1,3 +1,5 @@
+package project.alg.stp.helper;
+
 import java.util.Random;
 
 public class Helper {

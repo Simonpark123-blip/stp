@@ -1,3 +1,5 @@
+package project.alg.stp.entity;
+
 import java.util.List;
 
 public class Connection {
