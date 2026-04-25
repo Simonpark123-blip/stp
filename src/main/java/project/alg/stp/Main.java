@@ -134,7 +134,7 @@ public class Main {
 //        Switch switchF = new Switch(32768, 'F', randomMACAddress());
         Switch switchA = new Switch(40960, 'A', "00:01:13:D7:3E:5C");
         Switch switchB = new Switch(32768, 'B', "00:00:11:A3:3E:58");
-        Switch switchC = new Switch(36864, 'C', "00:00:13:FF:3E:55"); // TODO: wenn dieser Switch eine geringere Prio hat als Switch E, dann ist dieser immer noch nicht blocked!
+        Switch switchC = new Switch(436864, 'C', "00:00:13:FF:3E:55"); // TODO: wenn dieser Switch eine geringere Prio hat als Switch E, dann ist dieser immer noch nicht blocked!
         Switch switchD = new Switch(32768, 'D', "00:00:12:A5:12:55");
         Switch switchE = new Switch(40960, 'E', "00:01:13:D7:3E:B5");
         Switch switchF = new Switch(32768, 'F', "00:01:13:FF:3E:D5");
@@ -270,7 +270,10 @@ public class Main {
                 switchCosts.put(currentSwitch, cost);
             }
 
-            Map.Entry<Switch, Integer> lowestCostSwitch = switchCosts.entrySet().stream().filter(el -> el.getValue() != null).min(Map.Entry.comparingByValue()).orElse(null);
+            Map.Entry<Switch, Integer> lowestCostSwitch = switchCosts.entrySet().stream()
+                    .filter(el -> el.getValue() != null).min(Map.Entry.<Switch, Integer>comparingByValue()
+                            .thenComparing(e -> e.getKey().getPriority())
+                            .thenComparing(e -> e.getKey().getMacAddress())).get();
             System.out.println("Switch with lowest cost is " + lowestCostSwitch.getKey().getName());
 
             List<Port> originalPorts = lowestCostSwitch.getKey().getPorts();
