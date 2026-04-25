@@ -2,10 +2,11 @@ package project.alg.stp.entity;
 
 public class Port {
 
-    private String portName;
+    private final String portName;
     private boolean isDesignated = false;
     private boolean isRoot = false;
-    private boolean isBlocked = false;
+    private boolean isBlocked = true;
+    private boolean isUsed = false;
 
     public Port(String portName){
         this.portName = portName;
@@ -37,6 +38,14 @@ public class Port {
 
     public void setIsBlocked(boolean isBlocked){
         this.isBlocked = isBlocked;
+    }
+
+    public void setIsUsed(boolean isUsed){
+        this.isUsed = isUsed;
+    }
+
+    public boolean isUsed(){
+        return this.isUsed;
     }
 
 }

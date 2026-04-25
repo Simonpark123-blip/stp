@@ -8,7 +8,7 @@ import java.util.*;
 
 public class Main {
 
-    private static final List<Switch> switchList = initializeSwitches();
+    private static final  List<Switch> switchList = initializeSwitches();
     private static final List<Connection> connectionList = new ArrayList<>(List.of(
             new Connection(1, List.of("A/1", "B/3")),
             new Connection(1, List.of("B/1", "D/1")),
@@ -20,23 +20,34 @@ public class Main {
     ));
 
     public static void main(String[] args) {
-        printSwitches();
+        try{
+            printSwitches();
 
-        Switch rootBridge = findRootBridge();
+            Switch rootBridge = findRootBridge();
 
-        printConnections();
+            printConnections();
 
-        findPathCosts(rootBridge);
+            findUsedPorts();
 
-        printSwitches();
+            printSwitches();
 
-        findBlockedPorts();
+            findPathCosts(rootBridge);
 
-        printSwitches();
+            printSwitches();
 
-        markDesignatedPorts(rootBridge);
+            markDesignatedPorts(rootBridge);
 
-        printSwitches();
+            printSwitches();
+
+            findBlockedPorts(rootBridge);
+
+            printSwitches();
+        }
+        catch(Exception e){
+            System.out.println("Error: " + e.getMessage());
+            System.out.println("Stacktrace: " + Arrays.toString(e.getStackTrace()));
+            e.printStackTrace();
+        }
     }
 
     private static void findPathCosts(Switch rootBridge) {
@@ -123,7 +134,7 @@ public class Main {
 //        Switch switchF = new Switch(32768, 'F', randomMACAddress());
         Switch switchA = new Switch(40960, 'A', "00:01:13:D7:3E:5C");
         Switch switchB = new Switch(32768, 'B', "00:00:11:A3:3E:58");
-        Switch switchC = new Switch(36864, 'C', "00:00:13:FF:3E:55");
+        Switch switchC = new Switch(36864, 'C', "00:00:13:FF:3E:55"); // TODO: wenn dieser Switch eine geringere Prio hat als Switch E, dann ist dieser immer noch nicht blocked!
         Switch switchD = new Switch(32768, 'D', "00:00:12:A5:12:55");
         Switch switchE = new Switch(40960, 'E', "00:01:13:D7:3E:B5");
         Switch switchF = new Switch(32768, 'F', "00:01:13:FF:3E:D5");
@@ -174,28 +185,61 @@ public class Main {
         return connectionList;
     }
 
-    private static void findBlockedPorts() {
+    private static void findBlockedPorts(Switch rootBridge) {
         for(Switch switchEntity : switchList) {
             List<Port> ports = switchEntity.getPorts();
+            List<Port> updatedPorts = new ArrayList<>();
             for(Port port : ports){
-                if(port.isDesignated() || port.isRoot()){
-                    ports.remove(port);
-                    port.setIsBlocked(true);
-                    ports.add(port);
+                boolean isRootBridgePort = switchEntity.getName().equals(rootBridge.getName());
+                if(port.isUsed() && (port.isDesignated() || port.isRoot())){
+                    port.setIsBlocked(false);
                 }
+                else if(!port.isUsed()){
+                    port.setIsBlocked(false);
+                }
+                else if(isRootBridgePort){
+                    port.setIsBlocked(false);
+                }
+                updatedPorts.add(port);
             }
-            switchEntity.setPorts(ports);
+            switchEntity.setPorts(updatedPorts);
+        }
+    }
+
+    private static void findUsedPorts() {
+        for(Switch switchEntity : switchList) {
+            List<Port> ports = switchEntity.getPorts();
+            List<Port> updatedPorts = new ArrayList<>();
+            for(Port port : ports){
+                boolean isPortFound = Main.connectionList.stream().anyMatch(connection -> connection.getConnectedPorts().contains(port.getPortName()));
+                if(isPortFound){
+                    port.setIsUsed(true);
+                }
+                updatedPorts.add(port);
+            }
+            switchEntity.setPorts(updatedPorts);
         }
     }
 
     private static void printSwitches() {
-        System.out.println("\n------------------------------------");
-        for (Switch switchEntity : Main.switchList) {
-            System.out.print("| Switch " + switchEntity.getName() + " | " + switchEntity.getMacAddress() + " | " + switchEntity.getPriority() + " | ");
-            switchEntity.getPorts().forEach(port -> System.out.print(port.getPortName() + " - " + port.isRoot() + " - " + port.isDesignated() + " - " + port.isBlocked() + " | "));
-            System.out.println("\n------------------------------------");
+        List<Switch> sortedSwitchList = switchList.stream().sorted(Comparator.comparing(Switch::getName)).toList();
+
+        String portFormat = "%-6s%-7s%-9s%-7s%-10s";
+        String switchFormat = "%n%-8s | %-17s | %-8s | %-40s| %-40s| %-40s| %-40s";
+
+        StringBuilder outputTable = new StringBuilder();
+        String portDesc = String.format(portFormat, "Port", "used", "blocked", "root", "designated");
+        outputTable.append(String.format(switchFormat, "Switch", "MacAddress", "Priority", portDesc, portDesc, portDesc, portDesc));
+        for (Switch switchEntity : sortedSwitchList) {
+            List<String> portValues = new ArrayList<>();
+            List<Port> ports = switchEntity.getPorts().stream().sorted(Comparator.comparing(Port::getPortName)).toList();
+            ports.forEach(port -> portValues.add(
+                    String.format(portFormat, port.getPortName(), port.isUsed(), port.isBlocked(), port.isRoot(), port.isDesignated())
+            ));
+
+            outputTable.append(String.format(switchFormat, "Switch " + switchEntity.getName(), switchEntity.getMacAddress(), switchEntity.getPriority(), portValues.get(0), portValues.get(1), portValues.get(2), portValues.get(3)));
         }
-        System.out.println();
+        System.out.println(outputTable);
     }
 
     private static void printConnections() {
