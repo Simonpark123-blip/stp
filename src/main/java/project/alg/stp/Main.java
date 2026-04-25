@@ -30,6 +30,10 @@ public class Main {
 
         printSwitches();
 
+        findBlockedPorts();
+
+        printSwitches();
+
         markDesignatedPorts(rootBridge);
 
         printSwitches();
@@ -170,11 +174,25 @@ public class Main {
         return connectionList;
     }
 
+    private static void findBlockedPorts() {
+        for(Switch switchEntity : switchList) {
+            List<Port> ports = switchEntity.getPorts();
+            for(Port port : ports){
+                if(port.isDesignated() || port.isRoot()){
+                    ports.remove(port);
+                    port.setIsBlocked(true);
+                    ports.add(port);
+                }
+            }
+            switchEntity.setPorts(ports);
+        }
+    }
+
     private static void printSwitches() {
         System.out.println("\n------------------------------------");
         for (Switch switchEntity : Main.switchList) {
             System.out.print("| Switch " + switchEntity.getName() + " | " + switchEntity.getMacAddress() + " | " + switchEntity.getPriority() + " | ");
-            switchEntity.getPorts().forEach(port -> System.out.print(port.getPortName() + " - " + port.isRoot() + " - " + port.isDesignated() + " | "));
+            switchEntity.getPorts().forEach(port -> System.out.print(port.getPortName() + " - " + port.isRoot() + " - " + port.isDesignated() + " - " + port.isBlocked() + " | "));
             System.out.println("\n------------------------------------");
         }
         System.out.println();

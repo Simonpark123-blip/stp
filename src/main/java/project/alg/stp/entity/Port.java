@@ -5,7 +5,7 @@ public class Port {
     private String portName;
     private boolean isDesignated = false;
     private boolean isRoot = false;
-    private boolean isBlocked = true;
+    private boolean isBlocked = false;
 
     public Port(String portName){
         this.portName = portName;
