@@ -9,17 +9,15 @@ public class Helper {
         byte[] macAddr = new byte[6];
         rand.nextBytes(macAddr);
 
-        macAddr[0] = (byte)(macAddr[0] & (byte)254);
+        macAddr[0] = (byte) (macAddr[0] & (byte) 254);
 
         StringBuilder sb = new StringBuilder(18);
         for(byte b : macAddr){
-
-            if(!sb.isEmpty())
+            if(!sb.isEmpty()) {
                 sb.append(":");
-
+            }
             sb.append(String.format("%02x", b));
         }
-
         return sb.toString();
     }
 
